@@ -175,7 +175,7 @@ python chronos-cli.py run
 ```bash
 python sample_app/app.py
 ```
-*Generates mock checkout traces propagating W3C context headers across microservice namespaces.*
+*Generates mock checkout traces propagating custom context headers across microservice namespaces.*
 
 ---
 
