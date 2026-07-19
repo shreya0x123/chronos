@@ -20,13 +20,16 @@ class TraceService:
         trace_id = uuid.UUID(span_in.trace_id)
         trace = self.trace_repo.get_by_id(db, trace_id)
 
-        span_start_dt = datetime.fromtimestamp(span_in.start_time, tz=timezone.utc).replace(tzinfo=None)
+        span_start_dt = datetime.fromtimestamp(
+            span_in.start_time, tz=timezone.utc
+        ).replace(tzinfo=None)
         span_end_dt = (
-            datetime.fromtimestamp(span_in.end_time, tz=timezone.utc).replace(tzinfo=None)
+            datetime.fromtimestamp(span_in.end_time, tz=timezone.utc).replace(
+                tzinfo=None
+            )
             if span_in.end_time is not None
             else None
         )
-
 
         is_error = span_in.attributes.get("error", False)
 
@@ -57,8 +60,8 @@ class TraceService:
 
             if trace.end_time and trace.start_time:
                 trace.duration_ms = (
-                    (trace.end_time - trace.start_time).total_seconds() * 1000.0
-                )
+                    trace.end_time - trace.start_time
+                ).total_seconds() * 1000.0
 
             if is_error:
                 trace.has_error = True
@@ -157,9 +160,11 @@ class TraceService:
                     "service_name": svc,
                     "calls": stats["calls"],
                     "errors": stats["errors"],
-                    "error_rate": round((stats["errors"] / stats["calls"]) * 100.0, 2)
-                    if stats["calls"] > 0
-                    else 0.0,
+                    "error_rate": (
+                        round((stats["errors"] / stats["calls"]) * 100.0, 2)
+                        if stats["calls"] > 0
+                        else 0.0
+                    ),
                     "avg_duration_ms": round(avg, 2),
                     "p50_ms": round(p50, 2),
                     "p90_ms": round(p90, 2),

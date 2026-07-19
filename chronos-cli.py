@@ -76,8 +76,6 @@ def run_init():
     try:
         from app.db.session import engine
         from app.models.base import Base
-        import app.models.span
-        import app.models.trace
         
         Base.metadata.create_all(bind=engine)
         print(f"[ OK ] Database tables successfully created inside: {os.path.abspath(db_path)}")

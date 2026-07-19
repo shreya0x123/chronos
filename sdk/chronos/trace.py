@@ -52,4 +52,3 @@ def trace(name: Optional[str] = None) -> Callable:
         return wrapper
 
     return decorator
-

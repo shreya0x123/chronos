@@ -5,8 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.db.session import engine
 from app.models.base import Base
-import app.models.span as span_model
-import app.models.trace as trace_model
 
 
 @asynccontextmanager
@@ -47,4 +45,3 @@ def read_root():
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-

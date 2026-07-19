@@ -1,4 +1,3 @@
-import pytest
 import uuid
 import sys
 import os
@@ -13,12 +12,13 @@ from app.db.session import get_db
 
 mock_db = MagicMock()
 
+
 def override_get_db():
     yield mock_db
 
+
 app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
-
 
 
 def test_read_root():
@@ -58,7 +58,6 @@ def test_ingest_span_mocked(mock_get_trace, mock_ingest):
     mock_span.error_message = None
     mock_span.stack_trace = None
     mock_span.meta = {"attributes": {"error": False}, "events": []}
-
 
     mock_ingest.return_value = mock_span
     mock_get_trace.return_value = None  # Mock no trace found to skip WebSocket counts

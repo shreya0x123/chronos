@@ -42,4 +42,3 @@ class Span:
             "error.stack_trace",
             "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
         )
-

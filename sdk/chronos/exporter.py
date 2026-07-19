@@ -52,7 +52,7 @@ class HTTPSpanExporter(SpanExporter):
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(req) as response:
+                with urllib.request.urlopen(req):
                     pass  # Export successful
             except Exception as e:
                 # Fallback to printing error in console for debugging

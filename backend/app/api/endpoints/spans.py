@@ -48,8 +48,4 @@ async def create_span(span_in: SpanCreate, db: Session = Depends(get_db)):
 
         return span
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Failed to ingest span: {str(e)}"
-        )
-
-
+        raise HTTPException(status_code=400, detail=f"Failed to ingest span: {str(e)}")

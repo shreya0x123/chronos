@@ -5,3 +5,11 @@ from .span import (
     TraceDetailResponse,
     EventSchema,
 )
+
+__all__ = [
+    "SpanCreate",
+    "SpanResponse",
+    "TraceResponse",
+    "TraceDetailResponse",
+    "EventSchema",
+]

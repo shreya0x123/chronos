@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import Boolean, Double, String, Uuid, JSON, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.span import Span
+
 
 class Trace(Base):
     __tablename__ = "traces"
@@ -46,7 +50,6 @@ class Trace(Base):
         JSON,
         nullable=True,
     )
-
 
     spans: Mapped[list["Span"]] = relationship(
         "Span",

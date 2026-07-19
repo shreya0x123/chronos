@@ -26,13 +26,16 @@ class SpanRepository:
 
     def create(self, db: Session, span_in: SpanCreate) -> Span:
         # Convert float timestamps (seconds) to offset-naive UTC datetime objects
-        start_time_dt = datetime.fromtimestamp(span_in.start_time, tz=timezone.utc).replace(tzinfo=None)
+        start_time_dt = datetime.fromtimestamp(
+            span_in.start_time, tz=timezone.utc
+        ).replace(tzinfo=None)
         end_time_dt = (
-            datetime.fromtimestamp(span_in.end_time, tz=timezone.utc).replace(tzinfo=None)
+            datetime.fromtimestamp(span_in.end_time, tz=timezone.utc).replace(
+                tzinfo=None
+            )
             if span_in.end_time is not None
             else None
         )
-
 
         duration_ms = None
         if end_time_dt and start_time_dt:
@@ -59,9 +62,9 @@ class SpanRepository:
         span = Span(
             id=uuid.UUID(span_in.span_id),
             trace_id=uuid.UUID(span_in.trace_id),
-            parent_span_id=uuid.UUID(span_in.parent_span_id)
-            if span_in.parent_span_id
-            else None,
+            parent_span_id=(
+                uuid.UUID(span_in.parent_span_id) if span_in.parent_span_id else None
+            ),
             name=span_in.name,
             service_name=span_in.service_name,
             start_time=start_time_dt,

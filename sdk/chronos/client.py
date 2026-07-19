@@ -12,7 +12,11 @@ class ChronosClient:
             cls._instance = super(ChronosClient, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, service_name: str = "unknown-service", exporter: Optional[SpanExporter] = None):
+    def __init__(
+        self,
+        service_name: str = "unknown-service",
+        exporter: Optional[SpanExporter] = None,
+    ):
         # Prevent re-initialization if already initialized
         if hasattr(self, "_initialized") and self._initialized:
             return
@@ -41,7 +45,7 @@ class ChronosClient:
                 if self._active_spans
                 else uuid.uuid4().hex
             )
-        
+
         # Resolve parent_span_id
         parent_id = parent_span_id
         if not parent_id and self._active_spans:
@@ -78,4 +82,3 @@ class ChronosClient:
             "trace_id": headers_lower.get("x-chronos-trace-id"),
             "parent_span_id": headers_lower.get("x-chronos-span-id"),
         }
-

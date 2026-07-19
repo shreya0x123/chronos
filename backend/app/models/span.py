@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import Boolean, Double, ForeignKey, String, Text, Uuid, JSON, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.trace import Trace
 
 
 class Span(Base):
@@ -43,7 +46,6 @@ class Span(Base):
         nullable=False,
         default="unknown-service",
     )
-
 
     start_time: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
@@ -82,10 +84,7 @@ class Span(Base):
         nullable=True,
     )
 
-
     trace: Mapped["Trace"] = relationship(
         "Trace",
         back_populates="spans",
     )
-
-

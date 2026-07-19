@@ -18,7 +18,14 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
     exporter = HTTPSpanExporter(endpoint)
     client = ChronosClient(service_name="frontend", exporter=exporter)
 
-    scenario_mix = ["success", "success", "success", "slow_payment", "inventory_error", "payment_error"]
+    scenario_mix = [
+        "success",
+        "success",
+        "success",
+        "slow_payment",
+        "inventory_error",
+        "payment_error",
+    ]
 
     try:
         while True:
@@ -26,7 +33,9 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             order_id = str(uuid.uuid4())
             user_id = f"usr_{random.randint(1000, 9999)}"
 
-            print(f"Triggering checkout transaction: Scenario={scenario.upper()}, OrderID={order_id}")
+            print(
+                f"Triggering checkout transaction: Scenario={scenario.upper()}, OrderID={order_id}"
+            )
 
             # 1. Frontend Service
             client.service_name = "frontend"
@@ -47,7 +56,7 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             span_gw = client.start_span(
                 "route_request",
                 parent_span_id=ctx_gw["parent_span_id"],
-                trace_id=ctx_gw["trace_id"]
+                trace_id=ctx_gw["trace_id"],
             )
             span_gw.set_attribute("gateway.version", "v1.2.0")
             span_gw.add_event("request_received", {"route": "/api/checkout"})
@@ -63,7 +72,7 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             span_order = client.start_span(
                 "create_order",
                 parent_span_id=ctx_order["parent_span_id"],
-                trace_id=ctx_order["trace_id"]
+                trace_id=ctx_order["trace_id"],
             )
             span_order.set_attribute("order.id", order_id)
             span_order.add_event("validating_cart")
@@ -79,28 +88,30 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             span_inv = client.start_span(
                 "check_inventory",
                 parent_span_id=ctx_inventory["parent_span_id"],
-                trace_id=ctx_inventory["trace_id"]
+                trace_id=ctx_inventory["trace_id"],
             )
             span_inv.set_attribute("item.sku", "PROD-9988")
-            
+
             if scenario == "inventory_error":
                 time.sleep(0.04)
                 # Fail with inventory error
                 err = Exception("SKU PROD-9988 is out of stock in warehouse-east")
                 span_inv.record_exception(err)
                 client.finish_span(span_inv)
-                
+
                 # Rollback order span
                 client.service_name = "order-service"
                 span_order.set_attribute("http.status_code", 400)
-                span_order.record_exception(Exception("Order creation aborted: Inventory check failed"))
+                span_order.record_exception(
+                    Exception("Order creation aborted: Inventory check failed")
+                )
                 client.finish_span(span_order)
-                
+
                 # Rollback gateway span
                 client.service_name = "gateway"
                 span_gw.set_attribute("http.status_code", 400)
                 client.finish_span(span_gw)
-                
+
                 # Rollback frontend span
                 client.service_name = "frontend"
                 span_fe.set_attribute("http.status_code", 400)
@@ -125,7 +136,7 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             span_pay = client.start_span(
                 "charge_card",
                 parent_span_id=ctx_payment["parent_span_id"],
-                trace_id=ctx_payment["trace_id"]
+                trace_id=ctx_payment["trace_id"],
             )
             span_pay.set_attribute("payment.provider", "stripe")
             span_pay.set_attribute("payment.amount", 99.99)
@@ -141,18 +152,20 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
                 err = Exception("Stripe: Card declined (insufficient_funds)")
                 span_pay.record_exception(err)
                 client.finish_span(span_pay)
-                
+
                 # Rollback order span
                 client.service_name = "order-service"
                 span_order.set_attribute("http.status_code", 402)
-                span_order.record_exception(Exception("Order creation aborted: Payment failed"))
+                span_order.record_exception(
+                    Exception("Order creation aborted: Payment failed")
+                )
                 client.finish_span(span_order)
-                
+
                 # Rollback gateway span
                 client.service_name = "gateway"
                 span_gw.set_attribute("http.status_code", 402)
                 client.finish_span(span_gw)
-                
+
                 # Rollback frontend span
                 client.service_name = "frontend"
                 span_fe.set_attribute("http.status_code", 402)
@@ -177,7 +190,7 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
             span_notif = client.start_span(
                 "send_invoice_email",
                 parent_span_id=ctx_notif["parent_span_id"],
-                trace_id=ctx_notif["trace_id"]
+                trace_id=ctx_notif["trace_id"],
             )
             span_notif.set_attribute("email.template", "order_confirmation")
             span_notif.set_attribute("email.to", "user@chronos.com")
@@ -204,15 +217,17 @@ def run_simulation(endpoint="http://localhost:8000/api/v1/spans/"):
 
             print("Transaction finished: SUCCESS")
             print("-" * 60)
-            
+
             # Wait between simulations
             time.sleep(random.uniform(2, 4))
-            
+
     except KeyboardInterrupt:
         print("\nSimulator stopped by user.")
 
 
 if __name__ == "__main__":
     # Check if a custom endpoint was passed as command line arg
-    target_endpoint = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000/api/v1/spans/"
+    target_endpoint = (
+        sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000/api/v1/spans/"
+    )
     run_simulation(target_endpoint)
