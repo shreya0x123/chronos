@@ -212,7 +212,10 @@ Building a distributed tracing platform exposes unique database and synchronizat
 ### 1. Why isn't `parent_span_id` a Database Foreign Key?
 In microservice environments, spans are exported asynchronously as soon as their respective functions return. Because child functions (like `payment-service`) finish execution and export *before* their callers (like `gateway-service`), child spans frequently arrive at the ingestion collector first.
 *   **The Problem**: A hard database foreign key constraint (`parent_span_id REFERENCES spans.id`) would reject these out-of-order child spans.
-*   **The Trade-off**: We removed the database-level constraint in favor of a plain indexing `Uuid` column, deferring hierarchical reconstruction to query-time (depth-first resolution). This mirrors the architecture of systems like Jaeger and Zipkin.
+*   **The Trade-off**: We removed the database-level constraint in favor of a plain indexing `Uuid` column, deferring hierarchical reconstruction to query-time.
+*   **Hierarchical Tree Reconstruction & Orphan Handling**: During reads (`GET /api/v1/traces/{id}`), we run a depth-first topological traversal. Spans are elevated to virtual roots if their `parent_span_id` is null *or* not present in the database yet.
+*   **The Missing Root Trade-off**: If the true root span is lost permanently (e.g., container crash before export), the children remain permanently elevated as virtual roots. In a production observability stack, this is mitigated by tagging traces containing unresolved parents with validation warnings (e.g., `Missing Root Span`) inside query payloads.
+
 
 ### 2. Why Choose FastAPI?
 FastAPI was selected because its asynchronous request model and Pydantic schema validation simplify high-throughput ingestion APIs while keeping the implementation concise and type-safe. The async lifespan hook also allows database engine configurations to initialize thread pools and check connection ports on load cleanly.
@@ -319,7 +322,7 @@ To verify the platform's stability under load, we executed baseline benchmarks m
 
 ### Performance Analysis & Rationale
 *   **WebSocket Updates**: Propagation delay averaged just **`35 ms`**, allowing near-instantaneous dashboard updates as microservices process transactions.
-*   **Write Throughput**: Latency is highly consistent at `~90 ms` average. The p99 write latency spikes to `134.5 ms` due to SQLite's single-writer locking architecture, which serializes commits. In a Postgres environment, write latency behaves much more concurrently.
+*   **Write Throughput & Lock Serialization**: In SQLite WAL mode, readers do not block writers and writers do not block readers. However, writes are strictly serialized: writers must acquire a single write-lock byte on the WAL index (`-shm`) file for the duration of their transaction. Under 5 concurrent writers, this serialization limits writes to ~54 spans/sec, driving the p99 write latency to `134.5 ms`. Under higher concurrency factors (e.g., 50+ concurrent writers), this serialization queues connections, eventually exhausting our 30-second busy timeout. Additionally, autocheckpoint operations (transferring pages back to the `.db` file) introduce secondary write latency spikes.
 *   **Read Latency**: Getting trace listings has a p99 latency of `294.9 ms` under active write load because of read-write lock contention. Fetching trace details is extremely fast (`13.83 ms`) due to index optimization on the `trace_id` column.
 
 ### Resource Metrics
@@ -379,7 +382,7 @@ async def handle_route(request: Request):
 While architecturally faithful to production systems, Chronos has limitations due to its focus as a reference implementation:
 *   **SQLite Lock Bottleneck**: SQLite serializes all writes, making ingestion throughput limited compared to high-performance telemetry engines.
 *   **No Ingestion Authentication**: Endpoints are currently public; production setups would require API keys or token-based exporter authentication.
-*   **No Telemetry Sampling**: The collector processes 100% of incoming spans. Production tracing engines utilize head/tail sampling to reduce data volume.
+*   **No Telemetry Sampling**: The collector processes 100% of incoming spans. Production tracing backends implement head-based sampling (probabilistic rate-limiting at trace entry propagated via headers) or tail-based sampling (buffering all spans in memory to save only anomaly/error/slow runs). A production-grade system typically deploys a hybrid sampling architecture—using head-based rate limit filters as a memory safety valve at the edge, coupled with tail-based filters at the collector layer to ensure high-fidelity anomaly capture.
 *   **No Exporter Batching**: Spans are exported individually immediately after completion rather than in batched array payloads.
 *   **No native OTLP support**: Uses a custom JSON ingestion format rather than native OpenTelemetry protobuf payloads.
 
