@@ -19,38 +19,38 @@ def run_doctor():
     issues = 0
 
     # 1. Check Python
-    print(f"[✓] Python Version: {sys.version.split()[0]}")
+    print(f"[ OK ] Python Version: {sys.version.split()[0]}")
 
     # 2. Check Node
     node_ver = shutil.which("node")
     if node_ver:
         try:
             node_out = subprocess.check_output(["node", "--version"]).decode().strip()
-            print(f"[✓] Node.js Version: {node_out}")
+            print(f"[ OK ] Node.js Version: {node_out}")
         except Exception:
-            print("[X] Node.js is installed but failed to run.")
+            print("[FAIL] Node.js is installed but failed to run.")
             issues += 1
     else:
-        print("[X] Node.js not found in PATH (Frontend requires Node.js).")
+        print("[FAIL] Node.js not found in PATH (Frontend requires Node.js).")
         issues += 1
 
     # 3. Check SQLite database file
     db_path = os.path.abspath("backend/chronos.db")
     if os.path.exists(db_path):
-        print(f"[✓] Local SQLite DB detected: {db_path} ({os.path.getsize(db_path)} bytes)")
+        print(f"[ OK ] Local SQLite DB detected: {db_path} ({os.path.getsize(db_path)} bytes)")
     else:
-        print("[!] Local SQLite DB not initialized yet. Run 'python chronos-cli.py init'.")
+        print("[WARN] Local SQLite DB not initialized yet. Run 'python chronos-cli.py init'.")
 
     # 4. Check Ports availability
     if is_port_open(8000):
-        print("[!] Port 8000 (Backend API) is already in use.")
+        print("[WARN] Port 8000 (Backend API) is already in use.")
     else:
-        print("[✓] Port 8000 (Backend API) is available.")
+        print("[ OK ] Port 8000 (Backend API) is available.")
 
     if is_port_open(5173):
-        print("[!] Port 5173 (Vite Frontend) is already in use.")
+        print("[WARN] Port 5173 (Vite Frontend) is already in use.")
     else:
-        print("[✓] Port 5173 (Vite Frontend) is available.")
+        print("[ OK ] Port 5173 (Vite Frontend) is available.")
 
     print("=" * 60)
     if issues == 0:
@@ -66,9 +66,9 @@ def run_init():
     if os.path.exists(db_path):
         try:
             os.remove(db_path)
-            print("[✓] Deleted existing SQLite database to trigger a clean slate reset.")
+            print("[ OK ] Deleted existing SQLite database to trigger a clean slate reset.")
         except Exception as e:
-            print(f"[X] Failed to delete existing database. Is a server running? Error: {e}")
+            print(f"[FAIL] Failed to delete existing database. Is a server running? Error: {e}")
             return
 
     # Add paths and invoke schema creations
@@ -80,9 +80,9 @@ def run_init():
         import app.models.trace
         
         Base.metadata.create_all(bind=engine)
-        print(f"[✓] Database tables successfully created inside: {os.path.abspath(db_path)}")
+        print(f"[ OK ] Database tables successfully created inside: {os.path.abspath(db_path)}")
     except Exception as e:
-        print(f"[X] Database schema initialization failed: {e}")
+        print(f"[FAIL] Database schema initialization failed: {e}")
 
 def run_local_services():
     print_header("Launching Local Services (FastAPI + React)")
@@ -90,7 +90,7 @@ def run_local_services():
     
     try:
         # Start Backend Server
-        print("[*] Booting FastAPI backend on http://localhost:8000 ...")
+        print("[INFO] Booting FastAPI backend on http://localhost:8000 ...")
         backend_proc = subprocess.Popen(
             [sys.executable, "main.py"],
             cwd=os.path.abspath("backend"),
@@ -102,11 +102,11 @@ def run_local_services():
         # Give backend 1.5 seconds to bind to port
         time.sleep(1.5)
         if backend_proc.poll() is not None:
-            print("[X] Backend failed to start. Run 'python chronos-cli.py doctor' to check ports.")
+            print("[FAIL] Backend failed to start. Run 'python chronos-cli.py doctor' to check ports.")
             return
 
         # Start Frontend Dev Server
-        print("[*] Booting React Vite dashboard on http://localhost:5173 ...")
+        print("[INFO] Booting React Vite dashboard on http://localhost:5173 ...")
         frontend_proc = subprocess.Popen(
             ["npm", "run", "dev"],
             cwd=os.path.abspath("frontend"),
@@ -116,7 +116,7 @@ def run_local_services():
         )
         processes.append(frontend_proc)
         
-        print("\n[✓] Both services are running successfully!")
+        print("\n[ OK ] Both services are running successfully!")
         print("Press Ctrl+C to terminate both servers concurrently.")
         
         # Keep running until Ctrl+C
@@ -124,7 +124,7 @@ def run_local_services():
             time.sleep(1)
             
     except KeyboardInterrupt:
-        print("\n[*] Intercepted shutdown signal. Cleaning up subprocesses...")
+        print("\n[INFO] Intercepted shutdown signal. Cleaning up subprocesses...")
     finally:
         for p in processes:
             try:
@@ -132,14 +132,14 @@ def run_local_services():
                 p.wait(timeout=2)
             except Exception:
                 p.kill()
-        print("[✓] Both servers stopped.")
+        print("[ OK ] Both servers stopped.")
 
 def run_telemetry_benchmark():
     print_header("Running Ingestion Benchmarks")
     try:
         subprocess.run([sys.executable, "scripts/benchmark.py"], cwd=os.path.abspath("."))
     except Exception as e:
-        print(f"[X] Benchmark failed: {e}")
+        print(f"[FAIL] Benchmark failed: {e}")
 
 def print_help():
     print("Usage: python chronos-cli.py [command]")
