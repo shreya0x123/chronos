@@ -1,5 +1,6 @@
 import uuid
-from typing import Optional, List, Dict
+import contextvars
+from typing import Optional, Dict
 from .models import Span
 from .exporter import SpanExporter, ConsoleSpanExporter
 
@@ -22,7 +23,10 @@ class ChronosClient:
             return
         self.service_name = service_name
         self.exporter = exporter or ConsoleSpanExporter()
-        self._active_spans: List[Span] = []
+        # Context-local stack for tracking nested spans within the current async/thread context
+        self._active_spans_var = contextvars.ContextVar(
+            "chronos_active_spans", default=()
+        )
         self._initialized = True
 
     @classmethod
@@ -37,19 +41,17 @@ class ChronosClient:
         parent_span_id: Optional[str] = None,
         trace_id: Optional[str] = None,
     ) -> Span:
+        active_spans = self._active_spans_var.get()
+
         # Resolve trace_id (either passed from parent context or active span, or new one)
         t_id = trace_id
         if not t_id:
-            t_id = (
-                self._active_spans[-1].trace_id
-                if self._active_spans
-                else uuid.uuid4().hex
-            )
+            t_id = active_spans[-1].trace_id if active_spans else uuid.uuid4().hex
 
         # Resolve parent_span_id
         parent_id = parent_span_id
-        if not parent_id and self._active_spans:
-            parent_id = self._active_spans[-1].span_id
+        if not parent_id and active_spans:
+            parent_id = active_spans[-1].span_id
 
         span = Span(
             name=name,
@@ -58,13 +60,15 @@ class ChronosClient:
             parent_span_id=parent_id,
             service_name=self.service_name,
         )
-        self._active_spans.append(span)
+        self._active_spans_var.set(active_spans + (span,))
         return span
 
     def finish_span(self, span: Span) -> None:
         span.finish()
-        if span in self._active_spans:
-            self._active_spans.remove(span)
+        active_spans = self._active_spans_var.get()
+        if span in active_spans:
+            new_spans = tuple(s for s in active_spans if s != span)
+            self._active_spans_var.set(new_spans)
         # Export the finished span
         self.exporter.export([span])
 
