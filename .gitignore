@@ -1,0 +1,40 @@
+# Python dependencies & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+
+# Databases (Telemetry persistence files)
+backend/chronos.db
+backend/chronos.db-journal
+chronos.db
+chronos.db-journal
+*.db
+*.db-journal
+
+# Frontend Node packages & production builds
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+.eslintcache
+
+# System & OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor configurations
+.vscode/
+.idea/
+*.suo
+*.sln
+*.swp
+*.sublime-project
+*.sublime-workspace
+.env
+.env.local
